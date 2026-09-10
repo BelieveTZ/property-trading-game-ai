@@ -1,52 +1,95 @@
-# 联盟神经进化训练器
+# 训练与评测
 
-`league-trainer.mjs` 是网站所用冻结模型的可复现训练入口。它从零实现，不包含视频项目的源代码。
+训练主线以一个月约 450–600 GPU 小时内的独立评测表现为目标。策略只能看到公开牌局状态和当前合法动作，不能读取已洗好但尚未揭示的牌序、骰子结果或随机数状态。
 
-训练器只允许 `3`、`4`、`5` 人局。3 人和 5 人模型使用各自的达标标准：
+## 当前组成
+
+- `search_pipeline/`：随机搜索教师、公开信息信念采样、席位隔离状态、均衡座位评测与 100/300/500 GPU 小时冻结流程。
+- `zero_knowledge/`：从终局结果学习的 PPO 基准；其现有检查点冻结为对照组。
+- `league-trainer.mjs`：早期神经进化基准；继续用于回归评测，不再代表主训练路线。
+
+## 主训练路线
+
+1. 在 3、4、5 人固定种子牌局上运行随机搜索教师，保存公开观测、合法候选动作、教师分布和终局结果。
+2. 用教师分布和终局价值蒸馏快速策略／价值网络。
+3. 将候选策略加入历史联盟，以均衡座位继续自对弈强化学习。
+4. 在约 100、300、500 GPU 小时冻结候选并独立评测；只有通过门禁的候选才进入应用。
+5. 共享模型权重，但每个席位使用独立记忆、奖励累计和采样随机流。
+
+版本化参数见 [`search_pipeline/config.json`](search_pipeline/config.json)。`SearchTeacher` 在每次模拟前重新采样未知卡序，不会沿用环境内已洗好的隐藏顺序。教师数据逐条保存游戏种子、教师种子、版本、搜索预算、决策序号和所选动作，可从同一配置复现。
+
+可先用小预算生成一份可复现教师数据，验证完整管线：
 
 ```powershell
-node training/league-trainer.mjs `
-  --players 3 `
-  --generations 260 `
-  --min-generations 24 `
-  --patience 8 `
-  --min-delta 2 `
-  --target-win-rate 0.50 `
-  --target-average-rank 1.65 `
-  --population 40 `
-  --games 1200 `
-  --validate-every 5 `
-  --validation-games 4000 `
-  --final-games 40000 `
-  --max-turns 195 `
-  --workers 4 `
-  --seed 20260730 `
-  --output app/pretrained-model-3p.json
+python -m training.search_pipeline.generate `
+  --output training/runs/search-teacher/sample.jsonl `
+  --run-dir training/runs/search-teacher `
+  --players 4 `
+  --games 1 `
+  --simulations 16 `
+  --depth 24
 ```
 
-4 人模型把人数改为 `4`，最低观察代数设为 `32`、稳定验证次数设为 `10`、胜率下限目标设为 `0.35`、平均名次目标设为 `2.10`、每局最大回合设为 `260`、随机种子设为 `20260731`，并输出到 `app/pretrained-model.json`。5 人模型把人数改为 `5`，最低观察代数设为 `40`、稳定验证次数设为 `12`、胜率下限目标设为 `0.25`、平均名次目标设为 `2.45`、每局最大回合设为 `325`、随机种子设为 `20260801`，并输出到 `app/pretrained-model-5p.json`。
+生成器每局后原子保存进度；在运行目录创建 `pause.request` 后会在当前牌局结束时安全暂停，再次执行同一命令会从已完成局数继续。
 
-训练包含同随机数对照、全部座位轮换、当代种群对手、历史冠军池与独立验证集。动作空间由原来的购买、拍卖、建房、出狱、现金储备五项扩展为六项，新增了双边交易。AI 可以主动买入或主动出售地契，买卖双方分别用自己的策略网络判断是否成交；在掷骰前、监狱结果后、落地结算后和建房后都会重新考虑交易，每个窗口可以连续成交多笔，并可与同一玩家或不同玩家交易。为避免同一地契无意义地来回倒手，训练模拟器和网页都限制同一地契在同一完整回合内最多转手一次。训练模拟器与网页共用经典版的精确租金表。
+随后可把教师分布蒸馏为兼容现有公开观测／候选动作接口的快速策略：
 
-第 4 版训练加入购买与拍卖的经济一致性约束：如果同一策略愿意在拍卖中为某块地产出到挂牌价，落地时就不会再拒绝按挂牌价直接购买。网页端和训练器也统一补齐了第九个 `tradeWindow` 输入，非交易决策使用中性值 `0`，避免旧版缺失输入造成的异常偏好。
+```powershell
+python -m training.search_pipeline.distill `
+  --dataset training/runs/search-teacher/sample.jsonl `
+  --output training/runs/search-teacher/student.pt `
+  --steps 200
+```
 
-第 5 版把交易估值改为对称的边际资产组合估值。买入价值等于交易后组合价值减去交易前组合价值，卖出价值等于交易前组合价值减去交易后组合价值；租金能力和凑齐同组的机会价值在买卖两侧使用同一公式。这样不会再因为卖方按“卖出后的组数”计价、买方按“买入后的组数”计价而凭空生成价差。
+将蒸馏策略与一个或多个冻结检查点进行联盟自对弈微调；每个席位拥有独立的循环记忆、累计奖励和采样随机流：
 
-停止器同时要求：
+```powershell
+python -m training.search_pipeline.train_league `
+  --checkpoint training/runs/search-teacher/student.pt `
+  --opponent neuroevolution-v5=app/pretrained-model.json `
+  --opponent zero-knowledge-ppo-v1=training/runs/baselines/zero-knowledge-ppo-v1.pt `
+  --output training/runs/search-main/league-v1.pt `
+  --games 24 `
+  --players 3,4,5
+```
 
-1. 独立验证胜率的 95% Wilson 置信下界达到该人数模型的目标；
-2. 平均名次达到该人数模型的目标；
-3. 已达到最低观察代数；
-4. 最佳验证分连续若干次没有显著提升，确认结果已经稳定。
+使用固定种子、3/4/5 人局和均衡候选座位运行独立评测，并在达到 100、300、500 GPU 小时时冻结检查点：
 
-因此不同人数模型不需要训练相同局数，也不需要与 4 人模型训练相同局数。若未达标，训练会继续，直到达标稳定或用完最大代数预算。
+```powershell
+python -m training.search_pipeline.evaluate `
+  --checkpoint training/runs/search-teacher/student.pt `
+  --run-dir training/runs/search-main `
+  --gpu-hours 100 `
+  --players 3,4,5 `
+  --seeds 20260910,20260911,20260912,20260913 `
+  --opponent neuroevolution-v5=app/pretrained-model.json `
+  --opponent zero-knowledge-ppo-v1=training/runs/baselines/zero-knowledge-ppo-v1.pt
+```
 
-| 模型 | 停止代数 | 训练局数 | 验证局数 | 对保留规则策略胜率 | 95% 胜率下界 | 平均名次 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 3 人 | 45 | 2,160,000 | 100,000 | 87.24% | 86.90% | 1.129 |
-| 4 人 | 65 | 3,120,000 | 116,000 | 69.00% | 68.54% | 1.310 |
-| 5 人 | 75 | 3,600,000 | 124,000 | 62.52% | 62.04% | 1.376 |
+评测会写出完整席位安排、候选及对手文件哈希、模型版本、胜率、平均名次、Wilson 95% 区间、平均／P95 决策时间和非法动作数；候选座位与各对手所在的物理座位都会轮换，非法动作不为 0 的候选不会成为最佳候选。历史对手清单由 `LeagueRoster` 版本化保存。旧神经进化 JSON 会按文件内的 3/4/5 人元数据加载对应冻结模型，缺少匹配人数时直接拒绝评测；零知识 PPO 基准的本地冻结副本和 SHA-256 清单位于被 Git 忽略的 `training/runs/baselines/`。没有提供 `--opponent` 时只运行合法性烟雾基线，不能作为正式强度报告。
 
-三套第 5 版模型都采用对称边际组合估值并通过各自标准后提前停止；它们分别保留第 5、15、15 代的最佳策略，后续代数只用于确认改进已经稳定。3、4、5 人模型分别在第 45、65、75 代独立停止，训练局数和停止代数均由各自的达标与稳定性检查决定。
+上限策略由 `config.json` 的 `policies.upperBound` 搜索预算直接驱动，可用相同的固定种子和冻结对手单独评测：
 
-验证胜率只代表对本训练器内三种未参与进化的规则策略的结果，不等于对所有真人或其他 Monopoly AI 的通用胜率。
+```powershell
+python -m training.search_pipeline.evaluate_upper_bound `
+  --output training/runs/search-main/upper-bound.json `
+  --opponent neuroevolution-v5=app/pretrained-model.json `
+  --opponent zero-knowledge-ppo-v1=training/runs/baselines/zero-knowledge-ppo-v1.pt
+```
+
+上限报告还会固化教师随机种子、搜索模拟次数、深度、配置版本，以及所有对手检查点的路径和哈希，因而可核对到确切输入产物。
+
+## 基准训练
+
+本机环境安装及 PPO 的启动、暂停、恢复命令见 [`zero_knowledge/README.md`](zero_knowledge/README.md)。训练目录、检查点和运行日志均在忽略列表中，不进入源码仓库。
+
+## 评测报告要求
+
+每次正式比较都记录模型版本、对手版本、玩家人数、固定种子集合、座位分布与搜索预算，并报告：
+
+- 胜率与 95% Wilson 置信区间；
+- 平均名次；
+- 平均与高分位决策时间；
+- 非法动作数（发布门槛为 0）。
+
+训练内胜率不等同于对真人或任意外部策略的通用胜率。

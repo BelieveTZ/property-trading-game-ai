@@ -343,8 +343,8 @@ export function resolveLanding(
     player.inJail = true;
     player.jailTurns = 0;
     next.extraTurnEligible = false;
-    next.pending = { kind: "notice", label: `${player.name} 被送往监狱` };
-    appendTransitionLog(next, `${player.name} 到达「${tile.name}」，移动至监狱`);
+    next.pending = { kind: "notice", label: `${player.name} 被送往暂留所` };
+    appendTransitionLog(next, `${player.name} 到达「${tile.name}」，移动至暂留所`);
   } else if (property && property.ownerId === null) {
     next.pending = { kind: "property", tileId: tile.id };
     appendTransitionLog(next, `${player.name} 到达未售出的「${tile.name}」`);
@@ -359,10 +359,10 @@ export function resolveLanding(
   } else if (tile.type === "tax") {
     const amount = tile.id === 38 ? 100 : 200;
     next.pending = { kind: "tax", amount, label: tile.name };
-    appendTransitionLog(next, `${player.name} 需要支付 $${amount} ${tile.name}`);
+    appendTransitionLog(next, `${player.name} 需要支付 ¤${amount} ${tile.name}`);
   } else if (tile.type === "chance" || tile.type === "community") {
     next.pending = { kind: "card", deck: tile.type };
-    appendTransitionLog(next, `${player.name} 到达「${tile.name}」，等待录入实体牌面`);
+    appendTransitionLog(next, `${player.name} 到达「${tile.name}」，等待抽取事件牌`);
   } else {
     next.pending = { kind: "notice", label: `${player.name} 到达「${tile.name}」` };
     appendTransitionLog(next, `${player.name} 到达「${tile.name}」`);
@@ -397,25 +397,25 @@ export function recordDiceRoll(game, { dieOne, dieTwo }, context = {}) {
       kind: "notice",
       label: `${player.name} 未掷出双数，仍需停留（${player.jailTurns}/3）`,
     };
-    appendTransitionLog(next, `${player.name} 本轮未能离开监狱`);
+    appendTransitionLog(next, `${player.name} 本轮未能离开暂留所`);
     return { ok: true, reason: null, game: next };
   }
   if (roll.outcome === "triple-doubles-jail") {
-    next.pending = { kind: "notice", label: "连续三次双数，前往监狱" };
-    appendTransitionLog(next, `${player.name} 连续三次掷出双数，被送往监狱`);
+    next.pending = { kind: "notice", label: "连续三次双数，前往暂留所" };
+    appendTransitionLog(next, `${player.name} 连续三次掷出双数，被送往暂留所`);
     return { ok: true, reason: null, game: next };
   }
   if (roll.outcome === "released-by-doubles") {
-    appendTransitionLog(next, `${player.name} 掷出双数，离开监狱`);
+    appendTransitionLog(next, `${player.name} 掷出双数，离开暂留所`);
   } else if (roll.jailFee > 0) {
     player.cash -= roll.jailFee;
-    appendTransitionLog(next, `${player.name} 支付 $50 后离开监狱`);
+    appendTransitionLog(next, `${player.name} 支付 ¤50 后离开暂留所`);
   }
   const oldPosition = player.position;
   player.position = (player.position + dieOne + dieTwo) % 40;
   if (player.position < oldPosition) {
     player.cash += 200;
-    appendTransitionLog(next, `${player.name} 经过出发点，领取 $200`);
+    appendTransitionLog(next, `${player.name} 经过启程格，领取 ¤200`);
   }
   appendTransitionLog(next, `${player.name} 掷出 ${dieOne} + ${dieTwo}，前进 ${dieOne + dieTwo} 格`);
   return resolveLanding(next, player.id, context);
@@ -454,10 +454,10 @@ export function applyRecordedCard(
   }
 
   next.pending = null;
-  appendTransitionLog(next, `${player.name} 录入${deck === "chance" ? "机会" : "社会基金"}牌：${card.label}`);
+  appendTransitionLog(next, `${player.name} 结算${deck === "chance" ? "转机" : "城市基金"}牌：${card.label}`);
   const awardGo = () => {
     player.cash += 200;
-    appendTransitionLog(next, `${player.name} 经过起点，领取 $200`);
+    appendTransitionLog(next, `${player.name} 经过启程格，领取 ¤200`);
   };
   const moveTo = (destination, collectGo) => {
     const oldPosition = player.position;
@@ -475,11 +475,11 @@ export function applyRecordedCard(
         amount: -effect.amount,
         reason: card.label,
       });
-      appendTransitionLog(paid, `${player.name} 支付 $${-effect.amount}`);
+      appendTransitionLog(paid, `${player.name} 支付 ¤${-effect.amount}`);
       return { ok: true, reason: null, game: paid };
     }
     player.cash += effect.amount;
-    appendTransitionLog(next, `${player.name}领取 $${effect.amount}`);
+    appendTransitionLog(next, `${player.name}领取 ¤${effect.amount}`);
   } else if (effect.kind === "move") {
     return {
       ok: true,
@@ -532,7 +532,7 @@ export function applyRecordedCard(
     player.jailTurns = 0;
     next.doublesStreak = 0;
     next.extraTurnEligible = false;
-    next.pending = { kind: "notice", label: `${player.name} 按牌面即时入狱` };
+    next.pending = { kind: "notice", label: `${player.name} 按牌面前往暂留所` };
   } else if (effect.kind === "repairs") {
     const owned = next.properties.filter((property) => property.ownerId === player.id);
     const houses = owned.reduce(
@@ -548,7 +548,7 @@ export function applyRecordedCard(
       amount,
       reason: card.label,
     });
-    appendTransitionLog(paid, `${player.name} 为 ${houses} 栋房屋和 ${hotels} 家酒店支付维修费 $${amount}`);
+    appendTransitionLog(paid, `${player.name} 为 ${houses} 栋房屋和 ${hotels} 座地标支付维护费 ¤${amount}`);
     return { ok: true, reason: null, game: paid };
   } else if (effect.kind === "payEach" || effect.kind === "collectEach") {
     const opponents = next.players.filter(
@@ -563,13 +563,13 @@ export function applyRecordedCard(
     appendTransitionLog(
       paid,
       effect.kind === "payEach"
-        ? `${player.name} 向 ${opponents.length} 位玩家共支付 $${opponents.length * effect.amount}`
-        : `${player.name} 从 ${opponents.length} 位玩家共收取 $${opponents.length * effect.amount}`,
+        ? `${player.name} 向 ${opponents.length} 位玩家共支付 ¤${opponents.length * effect.amount}`
+        : `${player.name} 从 ${opponents.length} 位玩家共收取 ¤${opponents.length * effect.amount}`,
     );
     return { ok: true, reason: null, game: paid };
   } else if (effect.kind === "jailFree") {
     player.jailFreeCards += 1;
-    appendTransitionLog(next, `${player.name} 获得一张监狱通行证，当前持有 ${player.jailFreeCards} 张`);
+    appendTransitionLog(next, `${player.name} 获得一张暂留通行证，当前持有 ${player.jailFreeCards} 张`);
   } else {
     return { ok: false, reason: "unknown-card-effect", game: structuredClone(game) };
   }
@@ -614,7 +614,7 @@ export function resolvePendingDecision(game, action, { tiles } = {}) {
     }
     player.cash -= tile.price ?? 0;
     property.ownerId = player.id;
-    appendTransitionLog(next, `${player.name} 以 $${tile.price ?? 0} 买入「${tile.name}」`);
+    appendTransitionLog(next, `${player.name} 以 ¤${tile.price ?? 0} 买入「${tile.name}」`);
   } else if (pending.kind === "rent") {
     const owner = next.players.find(
       (candidate) => candidate.id === pending.ownerId,
@@ -630,7 +630,7 @@ export function resolvePendingDecision(game, action, { tiles } = {}) {
       reason: `租金：${tile.name}`,
     });
     paid.pending = null;
-    appendTransitionLog(paid, `${player.name} 向 ${owner.name} 支付租金 $${pending.amount}`);
+    appendTransitionLog(paid, `${player.name} 向 ${owner.name} 支付租金 ¤${pending.amount}`);
     return { ok: true, reason: null, game: paid };
   } else if (pending.kind === "tax") {
     const paid = recordPayment(next, {
@@ -640,7 +640,7 @@ export function resolvePendingDecision(game, action, { tiles } = {}) {
       reason: pending.label,
     });
     paid.pending = null;
-    appendTransitionLog(paid, `${player.name} 支付 $${pending.amount}「${pending.label}」`);
+    appendTransitionLog(paid, `${player.name} 支付 ¤${pending.amount}「${pending.label}」`);
     return { ok: true, reason: null, game: paid };
   }
 
@@ -648,7 +648,7 @@ export function resolvePendingDecision(game, action, { tiles } = {}) {
   return { ok: true, reason: null, game: next };
 }
 
-export function useJailFreeCard(game, playerId) {
+export function spendJailFreeCard(game, playerId) {
   const next = structuredClone(game);
   const player = next.players.find((candidate) => candidate.id === playerId);
   if (!player?.inJail || player.jailFreeCards < 1) {
@@ -657,7 +657,7 @@ export function useJailFreeCard(game, playerId) {
   player.jailFreeCards -= 1;
   player.inJail = false;
   player.jailTurns = 0;
-  appendTransitionLog(next, `${player.name} 使用监狱通行证，剩余 ${player.jailFreeCards} 张`);
+  appendTransitionLog(next, `${player.name} 使用暂留通行证，剩余 ${player.jailFreeCards} 张`);
   return { ok: true, reason: null, game: next };
 }
 
@@ -670,7 +670,7 @@ export function payJailFee(game, playerId) {
   player.cash -= 50;
   player.inJail = false;
   player.jailTurns = 0;
-  appendTransitionLog(next, `${player.name} 支付 $50 离开监狱`);
+  appendTransitionLog(next, `${player.name} 支付 ¤50 离开暂留所`);
   return { ok: true, reason: null, game: next };
 }
 
@@ -991,7 +991,7 @@ export function settlePropertyAuction(game, bid, { tiles = {} } = {}) {
   property.ownerId = winner.id;
   appendTransitionLog(
     next,
-    `${winner.name} 以 $${Math.round(bid.price).toLocaleString("zh-CN")} 竞得「${tiles[tileId]?.name ?? `地块 ${tileId}`}」`,
+    `${winner.name} 以 ¤${Math.round(bid.price).toLocaleString("zh-CN")} 竞得「${tiles[tileId]?.name ?? `地块 ${tileId}`}」`,
   );
   const nextTileId = next.auctionQueue.shift();
   next.pending =

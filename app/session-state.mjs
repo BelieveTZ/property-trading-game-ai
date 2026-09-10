@@ -8,8 +8,9 @@ import {
   pickUnusedAiName,
 } from "./player-catalog.mjs";
 
-export const SESSION_STORAGE_KEY = "monopoly-ai-session-v3";
+export const SESSION_STORAGE_KEY = "property-trading-game-ai-session-v4";
 export const LEGACY_SESSION_STORAGE_KEYS = Object.freeze([
+  "monopoly-ai-session-v3",
   "deed-advisor-session-v3",
 ]);
 

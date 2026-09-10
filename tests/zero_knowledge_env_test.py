@@ -6,12 +6,12 @@ import numpy as np
 
 from training.zero_knowledge.board_rules import board_rule_for, indexed_board_rules
 from training.zero_knowledge.encoding import encode_observation
-from training.zero_knowledge.env import ActionKind, DEED_TILES, MonopolyEnv
+from training.zero_knowledge.env import ActionKind, DEED_TILES, PropertyTradingEnv
 
 
 class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
     def test_observation_encoding_is_owned_by_the_checkpoint_schema_module(self) -> None:
-        env = MonopolyEnv(4, seed=73, max_rounds=4)
+        env = PropertyTradingEnv(4, seed=73, max_rounds=4)
         expected = env.observe()
         actual = encode_observation(env)
         for key in expected:
@@ -33,7 +33,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
             def integers(self, *_args: object, **_kwargs: object) -> int:
                 return next(self.values)
 
-        env = MonopolyEnv(3, seed=3, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=3, max_rounds=3)
         env.rng = FixedRoll()
         env.active = 0
         env.actor = 0
@@ -53,7 +53,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertEqual(env.pending_tile, 3)
 
     def test_trade_receiver_pays_interest_on_mortgaged_deed(self) -> None:
-        env = MonopolyEnv(3, seed=5, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=5, max_rounds=3)
         env.owner[3] = 1
         env.mortgaged[3] = True
         env.active = 0
@@ -83,7 +83,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
             def integers(self, *_args: object, **_kwargs: object) -> int:
                 return next(self.values)
 
-        env = MonopolyEnv(3, seed=7, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=7, max_rounds=3)
         env.chance_deck = [8, *[card for card in range(16) if card != 8]]
         env.chance_cursor = 0
         env.rng = FixedRoll((3, 4))
@@ -105,7 +105,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertEqual(len(env.chance_deck), 16)
 
     def test_traded_get_out_of_jail_card_keeps_its_deck_identity(self) -> None:
-        env = MonopolyEnv(3, seed=9, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=9, max_rounds=3)
         env.chance_deck.remove(8)
         env.jail_cards[0] = 1
         env.jail_card_decks[0] = [True]
@@ -124,7 +124,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertEqual(env.jail_card_decks[1], [True])
 
     def test_bankruptcy_to_bank_returns_held_jail_cards_to_decks(self) -> None:
-        env = MonopolyEnv(3, seed=11, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=11, max_rounds=3)
         env.chance_deck.remove(8)
         env.community_deck.remove(4)
         env.jail_cards[0] = 2
@@ -143,7 +143,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertIn(4, env.community_deck)
 
     def test_auction_does_not_force_a_winner_after_eighty_actions(self) -> None:
-        env = MonopolyEnv(3, seed=13, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=13, max_rounds=3)
         env._start_auction(1)
         assert env.auction is not None
         env.auction.update({"bid": 100, "leader": 0, "active": [0, 1, 2], "cursor": 1, "steps": 79})
@@ -157,7 +157,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
 
     def test_random_play_reaches_terminal_for_each_supported_player_count(self) -> None:
         for players in (3, 4, 5):
-            env = MonopolyEnv(players, seed=players, max_rounds=4)
+            env = PropertyTradingEnv(players, seed=players, max_rounds=4)
             steps = 0
             while not env.done and steps < 10_000:
                 actions = env.legal_actions()
@@ -171,7 +171,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
             self.assertAlmostEqual(float(env.terminal_rewards.min()), -1.0, places=5)
 
     def test_only_active_player_can_initiate_trade(self) -> None:
-        env = MonopolyEnv(4, seed=7, max_rounds=3)
+        env = PropertyTradingEnv(4, seed=7, max_rounds=3)
         env.owner[1] = 0
         env.owner[3] = 1
         env.phase = "turn_start"
@@ -186,7 +186,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertEqual({action.kind for action in env.legal_actions()}, {ActionKind.ACCEPT_TRADE, ActionKind.REJECT_TRADE})
 
     def test_rejected_offer_is_not_repeated_but_new_offer_is_available(self) -> None:
-        env = MonopolyEnv(3, seed=11, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=11, max_rounds=3)
         env.owner[1] = 0
         env.owner[3] = 1
         env.phase = "turn_start"
@@ -198,7 +198,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertTrue(any(action.kind == ActionKind.TRADE for action in env.legal_actions()))
 
     def test_observation_and_action_shapes_are_stable(self) -> None:
-        env = MonopolyEnv(5, seed=19, max_rounds=3)
+        env = PropertyTradingEnv(5, seed=19, max_rounds=3)
         observation = env.observe()
         self.assertEqual(observation["global"].shape, (37,))
         self.assertEqual(observation["players"].shape, (5, 11))
@@ -209,7 +209,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertTrue(np.isfinite(observation["properties"]).all())
 
     def test_multiple_even_builds_and_debt_sales_are_available_in_one_turn(self) -> None:
-        env = MonopolyEnv(3, seed=21, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=21, max_rounds=3)
         for tile in (6, 8, 9):
             env.owner[tile] = 0
         for tile in (6, 8, 9, 6):
@@ -227,7 +227,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertEqual(int(env.houses.sum()), 2)
 
     def test_trade_response_observation_contains_offer_terms(self) -> None:
-        env = MonopolyEnv(3, seed=23, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=23, max_rounds=3)
         env.owner[1] = 0
         env.owner[3] = 1
         offer = next(
@@ -242,7 +242,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertAlmostEqual(float(observation[30]), 3 / 39.0)
 
     def test_bankruptcy_to_bank_auctions_each_deed(self) -> None:
-        env = MonopolyEnv(3, seed=29, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=29, max_rounds=3)
         env.owner[1] = 0
         env.owner[3] = 0
         env.cash[0] = -1
@@ -257,7 +257,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertEqual(env.auction_queue, [3])
 
     def test_even_building_and_mortgage_rules(self) -> None:
-        env = MonopolyEnv(3, seed=31, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=31, max_rounds=3)
         for tile in (6, 8, 9):
             env.owner[tile] = 0
         builds = {action.tile for action in env.legal_actions() if action.kind == ActionKind.BUILD}
@@ -270,7 +270,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertTrue(all(tile not in mortgages for tile in (6, 8, 9)))
 
     def test_printed_rent_table_and_monopoly_double_rent(self) -> None:
-        env = MonopolyEnv(3, seed=37, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=37, max_rounds=3)
         env.owner[1] = 0
         self.assertEqual(env._rent(1, 7), 2)
         env.owner[3] = 0
@@ -279,7 +279,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertEqual(env._rent(1, 7), 90)
 
     def test_uncollectible_rent_does_not_create_cash(self) -> None:
-        env = MonopolyEnv(3, seed=41, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=41, max_rounds=3)
         env.owner[39] = 1
         env.houses[39] = 5
         env.cash[0] = 100
@@ -291,7 +291,7 @@ class ZeroKnowledgeEnvironmentTests(unittest.TestCase):
         self.assertEqual(int(env.cash[1]), 1600)
 
     def test_collect_from_each_resolves_debtors_in_sequence(self) -> None:
-        env = MonopolyEnv(3, seed=43, max_rounds=3)
+        env = PropertyTradingEnv(3, seed=43, max_rounds=3)
         env.cash[1] = 5
         env.cash[2] = 20
         self.assertTrue(env._collect_each(0, 10))

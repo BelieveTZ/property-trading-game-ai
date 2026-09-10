@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const source = await readFile(
-  new URL("../app/GameApp.tsx", import.meta.url),
+  new URL("../app/StandaloneGameApp.tsx", import.meta.url),
   "utf8",
 );
 const trainer = await readFile(
@@ -12,6 +12,10 @@ const trainer = await readFile(
 );
 const advisor = await readFile(
   new URL("../app/ai-advisor.mjs", import.meta.url),
+  "utf8",
+);
+const standalonePolicy = await readFile(
+  new URL("../app/standalone-policy.mjs", import.meta.url),
   "utf8",
 );
 
@@ -26,12 +30,9 @@ test("exposes every trained neural action in the turn workflow", () => {
   assert.match(advisor, /LEAGUE_OUTPUT\.build/);
   assert.match(advisor, /LEAGUE_OUTPUT\.leaveJail/);
   assert.match(advisor, /LEAGUE_OUTPUT\.cashReserve/);
-  assert.match(source, /evaluateTrade\(/);
-
-  assert.match(source, /const buildRecommendation = useMemo/);
-  assert.match(source, /function executeRecommendedBuilds\(/);
-  assert.match(source, /按建议建造/);
-  assert.match(source, /const jailSuggestion = useMemo/);
-  assert.match(source, /function payToLeaveJail\(/);
-  assert.match(source, /支付 \$50 出狱/);
+  assert.match(standalonePolicy, /automaticNegotiationAction\(/);
+  assert.match(source, /legalManagementActions\(/);
+  assert.match(source, />资产管理</);
+  assert.match(source, /支付 ¤50 后离开/);
+  assert.match(source, /trade-counter/);
 });

@@ -11,6 +11,35 @@ export const PLAYER_COLORS = Object.freeze([
 ]);
 
 export const OFFICIAL_AI_NAMES = Object.freeze([
+  "许澄",
+  "唐昕",
+  "周野",
+  "江遥",
+  "沈栩",
+  "顾岚",
+  "陆遥",
+  "程砚",
+  "温禾",
+  "乔星",
+  "叶川",
+  "闻溪",
+  "夏原",
+  "简宁",
+  "苏屿",
+  "秦越",
+  "方棠",
+  "黎川",
+  "宋知",
+  "贺青",
+  "安然",
+]);
+
+const LEGACY_DEFAULT_AI_NAMES = new Set([
+  "林舟",
+  "小麦",
+  "阿岚",
+  "向北",
+  "可可",
   "麦克",
   "法布里奇欧",
   "凯维娜",
@@ -32,14 +61,6 @@ export const OFFICIAL_AI_NAMES = Object.freeze([
   "李奥",
   "菲立佩",
   "麦可",
-]);
-
-const LEGACY_DEFAULT_AI_NAMES = new Set([
-  "林舟",
-  "小麦",
-  "阿岚",
-  "向北",
-  "可可",
 ]);
 
 export function shuffledAiNames(random = Math.random) {

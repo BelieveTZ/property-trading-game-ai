@@ -487,7 +487,7 @@ function tradeDraft(fromId, toId) {
 
 
 function money(value) {
-  return `$${Math.round(value).toLocaleString("zh-CN")}`;
+  return `¤${Math.round(value).toLocaleString("zh-CN")}`;
 }
 
 

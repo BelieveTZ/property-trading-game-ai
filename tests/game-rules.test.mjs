@@ -24,7 +24,7 @@ import {
   recordDiceRoll,
   settlePropertyAuction,
   settleBankruptcy,
-  useJailFreeCard,
+  spendJailFreeCard,
   payJailFee,
 } from "../app/game-rules.mjs";
 import { TILES as boardTiles } from "../app/board-catalog.mjs";
@@ -437,7 +437,7 @@ test("jail exits and player roster changes are validated state transitions", () 
     paymentQueue: [],
     log: [],
   };
-  const used = useJailFreeCard(game, 0);
+  const used = spendJailFreeCard(game, 0);
   assert.equal(used.ok, true);
   assert.equal(used.game.players[0].jailFreeCards, 0);
   assert.equal(used.game.players[0].inJail, false);

@@ -11,9 +11,12 @@ import {
   writeSessionSnapshot,
 } from "../app/session-state.mjs";
 
-test("uses the MonopolyAI storage namespace while preserving the previous key for migration", () => {
-  assert.equal(SESSION_STORAGE_KEY, "monopoly-ai-session-v3");
-  assert.deepEqual(LEGACY_SESSION_STORAGE_KEYS, ["deed-advisor-session-v3"]);
+test("uses the product storage namespace while preserving previous keys for migration", () => {
+  assert.equal(SESSION_STORAGE_KEY, "property-trading-game-ai-session-v4");
+  assert.deepEqual(LEGACY_SESSION_STORAGE_KEYS, [
+    "monopoly-ai-session-v3",
+    "deed-advisor-session-v3",
+  ]);
 });
 
 test("starting a new game resets every persisted decision flow", () => {

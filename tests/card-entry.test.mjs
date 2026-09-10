@@ -4,9 +4,9 @@ import test from "node:test";
 import { TILES } from "../app/board-catalog.mjs";
 import { CARD_DECKS } from "../app/card-catalog.mjs";
 
-test("requires manual entry for Chance and Community Chest cards", async () => {
+test("draws Chance and Community cards automatically from the seeded runtime", async () => {
   const source = await readFile(
-    new URL("../app/GameApp.tsx", import.meta.url),
+    new URL("../app/standalone-session.mjs", import.meta.url),
     "utf8",
   );
   const rules = await readFile(
@@ -18,15 +18,12 @@ test("requires manual entry for Chance and Community Chest cards", async () => {
     rules,
     /next\.pending = \{ kind: "card", deck: tile\.type \}/,
   );
-  assert.match(source, /请选择桌面上实际抽到的/);
-  assert.match(source, /程序不会随机代抽/);
-  assert.doesNotMatch(
-    source,
-    /const event = CARD_EVENTS\[/,
-  );
+  assert.match(source, /function drawPendingCards\(session\)/);
+  assert.match(source, /drawRuntimeCard\(next\.runtime, deck, CARD_DECKS\)/);
+  assert.doesNotMatch(source, /桌面上实际抽到|手工录入/);
 });
 
-test("includes the complete classic physical card effects", async () => {
+test("includes the complete fixed-rule card effects", async () => {
   const rules = await readFile(
     new URL("../app/game-rules.mjs", import.meta.url),
     "utf8",
@@ -36,23 +33,23 @@ test("includes the complete classic physical card effects", async () => {
     .join("\n");
 
   for (const expectedText of [
-    "直达海滨大道",
-    "前进至最近的铁路",
+    "直达天际大道",
+    "最近的交通枢纽",
     "退后 3 格",
-    "全面维修",
-    "银行疏忽对你有利",
-    "今天是你的生日",
-    "维修街道",
-    "监狱通行证",
+    "年度检修",
+    "公共账户复核",
+    "邻里开放日",
+    "街区维护评估",
+    "暂留所通行证",
   ]) {
     assert.match(cardText, new RegExp(expectedText));
   }
   assert.match(rules, /export function applyRecordedCard/);
 });
 
-test("uses the Monopoly Plus Simplified Chinese terminology", async () => {
+test("uses original fictional-city terminology and currency", async () => {
   const source = await readFile(
-    new URL("../app/GameApp.tsx", import.meta.url),
+    new URL("../app/StandaloneGameApp.tsx", import.meta.url),
     "utf8",
   );
 
@@ -60,27 +57,26 @@ test("uses the Monopoly Plus Simplified Chinese terminology", async () => {
   const cardText = [...CARD_DECKS.chance, ...CARD_DECKS.community]
     .map((card) => card.label)
     .join("\n");
-  for (const officialText of [
-    "社会基金",
-    "巴尔提克大道",
-    "康乃狄克大道",
-    "史代兹大道",
-    "维吉尼亚大道",
-    "巴尔的摩与俄亥俄铁路",
-    "北卡罗莱纳大道",
-    "短程铁路",
-    "园区",
-    "海滨大道",
+  for (const originalText of [
+    "城市基金",
+    "旧港巷",
+    "晴湾大道",
+    "南栈大道",
+    "南湾枢纽",
+    "环湖大道",
+    "西岭枢纽",
+    "星河园区",
+    "天际大道",
   ]) {
-    assert.ok(boardText.includes(officialText));
+    assert.ok(boardText.includes(originalText));
   }
 
-  for (const officialText of [
-    "银行支付红利 $50。",
-    "旅游基金到期，领取 $100。",
-    "监狱通行证",
+  for (const originalText of [
+    "项目红利，领取 ¤50。",
+    "城市节庆补助到账，领取 ¤100。",
+    "暂留所通行证",
   ]) {
-    assert.ok(cardText.includes(officialText));
+    assert.ok(cardText.includes(originalText));
   }
 
   for (const previousText of [
@@ -93,9 +89,6 @@ test("uses the Monopoly Plus Simplified Chinese terminology", async () => {
     assert.doesNotMatch(`${boardText}\n${cardText}\n${source}`, new RegExp(previousText));
   }
 
-  assert.match(
-    source,
-    /return `\$\$\{Math\.round\(value\)\.toLocaleString\("zh-CN"\)\}`/,
-  );
+  assert.match(source, /return `¤\$\{Math\.round\(value\)\.toLocaleString\("zh-CN"\)\}`/);
   assert.doesNotMatch(source, /M\d+/);
 });

@@ -78,8 +78,8 @@ class Action:
         )
 
 
-class MonopolyEnv:
-    """Turn-based classic Monopoly environment with no hand-authored policy values.
+class PropertyTradingEnv:
+    """Turn-based property-trading environment with no hand-authored policy values.
 
     The simulator contains only game rules and printed deed values. All strategic
     preferences are learned from terminal game outcomes.

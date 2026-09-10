@@ -28,7 +28,7 @@ class ModelConfig:
     dropout: float = 0.0
 
 
-class MonopolyPolicy(nn.Module):
+class PropertyTradingPolicy(nn.Module):
     """Entity-aware recurrent actor-critic with candidate-action scoring."""
 
     def __init__(self, config: ModelConfig | None = None):

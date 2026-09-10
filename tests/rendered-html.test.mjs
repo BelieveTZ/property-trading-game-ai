@@ -16,30 +16,14 @@ async function render() {
   );
 }
 
-test("renders the MonopolyAI application shell", async () => {
+test("renders the property-trading game application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /<title>MonopolyAI<\/title>/);
-  assert.match(html, /<strong>MonopolyAI<\/strong>/);
-  assert.match(html, /当前回合/);
-  assert.match(html, /当前部署策略/);
-  assert.match(html, /专用神经进化模型/);
-  assert.match(html, /起点/);
-  assert.match(html, /机会/);
-  assert.match(html, /社会基金/);
-  assert.match(html, /免费停车/);
-  assert.match(html, /电力公司/);
-  assert.match(html, /自来水公司/);
-  assert.match(html, /园区/);
-  assert.match(html, /海滨大道/);
-  assert.doesNotMatch(html, /地块名称主题/);
-  assert.doesNotMatch(html, /上海|深圳|悉尼|合肥|贵阳/);
-  assert.doesNotMatch(html, /brand-mark/);
-  assert.doesNotMatch(html, /brand-name|brand-sub/);
-  assert.doesNotMatch(html, /city-theme-chip/);
-  assert.doesNotMatch(html, /局面管理/);
-  assert.doesNotMatch(html, /AI 实验室/);
-  assert.doesNotMatch(html, /react-loading-skeleton/);
+  assert.match(html, /<title>地产交易游戏AI<\/title>/);
+  assert.match(html, /原创的单机地产交易棋盘游戏/);
+  assert.match(html, /StandaloneGameApp-/);
+  assert.match(html, /正在恢复本机牌局/);
+  assert.doesNotMatch(html, /MonopolyAI|大富翁决策助手|Monopoly Plus/);
 });

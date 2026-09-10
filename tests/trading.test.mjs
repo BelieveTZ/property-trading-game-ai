@@ -9,10 +9,6 @@ import {
 } from "../training/league-trainer.mjs";
 import { indexedBoardRules } from "../shared/board-rules.mjs";
 
-const source = await readFile(
-  new URL("../app/GameApp.tsx", import.meta.url),
-  "utf8",
-);
 const trainer = await readFile(
   new URL("../training/league-trainer.mjs", import.meta.url),
   "utf8",
@@ -23,35 +19,11 @@ const advisor = await readFile(
 );
 
 test("records bilateral cash, deed and jail-card trades with classic safeguards", () => {
-  assert.match(source, /className="state-section trade-section"/);
-  assert.match(source, /function renderTurnTradePanel\(\)/);
-  assert.match(source, /\{!game\.gameOver && renderTurnTradePanel\(\)\}/);
-  assert.match(source, /if \(tab !== "turn"\) return/);
-  assert.match(source, /const fromId = game\.activePlayerId/);
-  assert.match(source, /className="trade-player-fixed"/);
-  assert.match(source, /\{activePlayer\.name\}/);
-  assert.match(source, /<span>甲方<\/span>/);
-  assert.match(source, /<span>乙方<\/span>/);
-  assert.match(source, /AI 交易建议/);
-  assert.match(source, /将“我”设为交易一方并录入报价后，AI 会给出建议/);
-  assert.match(source, /const proactiveTradeProposal = useMemo/);
   assert.match(advisor, /export function recommendTradeProposal/);
   assert.match(advisor, /const considerCashForDeed =/);
   assert.match(advisor, /const evaluation = evaluateTrade/);
   assert.match(advisor, /!evaluation\.accepted/);
-  assert.match(source, /AI 主动提案/);
-  assert.match(source, /填入报价/);
-  assert.match(source, /对方拒绝/);
-  assert.match(source, /tradeProposalKey/);
-  assert.match(source, /function rejectProactiveTrade\(/);
   assert.match(advisor, /!rejectedKeys\.includes\(candidate\.key\)/);
-  assert.match(source, /setRejectedTradeProposalKeys\(\[\]\)/);
-  assert.match(
-    source,
-    /tradeProposalKey\(current\) === proposal\.key[\s\S]*?createTradeDraft/,
-  );
-  assert.match(source, /AI 暂不建议主动发起交易/);
-  assert.match(source, /记录并执行交易/);
   const result = applyTrade(
     {
       players: [

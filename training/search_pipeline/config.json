@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "playerCounts": [3, 4, 5],
+  "monthlyGpuHours": [450, 600],
+  "teacher": {
+    "version": "seeded-stochastic-rollout-v1",
+    "algorithm": "seeded-stochastic-rollout-search",
+    "simulations": 256,
+    "depth": 96
+  },
+  "student": {
+    "version": "search-student-v1",
+    "seed": 20260910,
+    "objective": ["teacher-policy-distillation", "terminal-value"],
+    "sharedWeights": true,
+    "independentSeatMemory": true
+  },
+  "policies": {
+    "fastPlay": {
+      "version": "search-student-v1",
+      "decisionMode": "single-network-pass"
+    },
+    "upperBound": {
+      "version": "search-teacher-v1",
+      "decisionMode": "seeded-public-belief-search",
+      "simulations": 4096,
+      "depth": 192
+    }
+  },
+  "league": {
+    "frozenBaselines": ["neuroevolution-v5", "zero-knowledge-ppo-v1"],
+    "milestoneGpuHours": [100, 300, 500]
+  },
+  "evaluation": {
+    "balancedSeats": true,
+    "fixedSeeds": true,
+    "metrics": ["winRate", "averageRank", "wilson95", "decisionTime", "illegalActions"]
+  }
+}

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import GameApp from "./GameApp";
+import StandaloneGameApp from "./StandaloneGameApp";
 
 export const metadata: Metadata = {
   description:
-    "录入实体牌局的骰子和决策，在关键回合获得明确的 AI 操作建议，并用本地自对弈持续训练策略。",
+    "原创的单机地产交易棋盘游戏，支持实时决策建议、全 AI 观战与可复现的自对弈研究。",
 };
 
 export default function Home() {
-  return <GameApp />;
+  return <StandaloneGameApp />;
 }

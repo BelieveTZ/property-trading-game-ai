@@ -8,11 +8,11 @@ import numpy as np
 import torch
 from torch.distributions import Categorical
 
-from .env import Action, ActionKind, PRICES, MonopolyEnv
-from .model import ModelConfig, MonopolyPolicy, collate_actions, collate_observations
+from .env import Action, ActionKind, PRICES, PropertyTradingEnv
+from .model import ModelConfig, PropertyTradingPolicy, collate_actions, collate_observations
 
 
-def baseline_action(env: MonopolyEnv, actions: list[Action], style: str) -> int:
+def baseline_action(env: PropertyTradingEnv, actions: list[Action], style: str) -> int:
     reserve = {"conservative": 500, "balanced": 300, "aggressive": 120}[style]
     actor = env.actor
     by_kind: dict[ActionKind, list[tuple[int, Action]]] = {}
@@ -57,15 +57,15 @@ def baseline_action(env: MonopolyEnv, actions: list[Action], style: str) -> int:
     return 0
 
 
-def load_model(path: Path, device: torch.device) -> MonopolyPolicy:
+def load_model(path: Path, device: torch.device) -> PropertyTradingPolicy:
     payload = torch.load(path, map_location=device, weights_only=False)
-    model = MonopolyPolicy(ModelConfig(**payload["model_config"])).to(device)
+    model = PropertyTradingPolicy(ModelConfig(**payload["model_config"])).to(device)
     model.load_state_dict(payload["model"])
     model.eval()
     return model
 
 
-def model_action(model: MonopolyPolicy, env: MonopolyEnv, actions: list[Action], hidden: torch.Tensor, device: torch.device) -> tuple[int, torch.Tensor]:
+def model_action(model: PropertyTradingPolicy, env: PropertyTradingEnv, actions: list[Action], hidden: torch.Tensor, device: torch.device) -> tuple[int, torch.Tensor]:
     observation = collate_observations([env.observe()], device)
     action_data, mask = collate_actions([actions], [env.actor], [env.player_count], device)
     with torch.no_grad():
@@ -90,7 +90,7 @@ def main() -> None:
         wins = 0
         ranks: list[int] = []
         for game in range(args.games):
-            env = MonopolyEnv(player_count, seed=int(rng.integers(2**31 - 1)), max_rounds=360)
+            env = PropertyTradingEnv(player_count, seed=int(rng.integers(2**31 - 1)), max_rounds=360)
             model_seat = game % player_count
             hidden = torch.zeros(1, model.hidden_size, device=device)
             while not env.done:

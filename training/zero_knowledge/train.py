@@ -17,9 +17,9 @@ import torch
 from torch import Tensor
 from torch.distributions import Categorical
 
-from .env import Action, MAX_PLAYERS, MonopolyEnv
+from .env import Action, MAX_PLAYERS, PropertyTradingEnv
 from .encoding import collate_action_feature_rows, collate_actions, collate_observations
-from .model import ModelConfig, MonopolyPolicy
+from .model import ModelConfig, PropertyTradingPolicy
 
 
 @dataclass(slots=True)
@@ -106,13 +106,13 @@ class LeagueTrainer:
             feedforward=args.feedforward,
             dropout=args.dropout,
         )
-        self.model = MonopolyPolicy(config).to(self.device)
+        self.model = PropertyTradingPolicy(config).to(self.device)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer, mode="max", factor=0.5, patience=max(4, args.patience // 3), min_lr=1e-5
         )
         self.state = TrainState(started_at=time.time())
-        self.snapshots: list[MonopolyPolicy] = []
+        self.snapshots: list[PropertyTradingPolicy] = []
         self.snapshot_updates: list[int] = []
         self.autocast_dtype = torch.bfloat16 if self.device.type == "cuda" and torch.cuda.is_bf16_supported() else torch.float16
         if args.resume and self.checkpoint_path.exists():
@@ -178,7 +178,7 @@ class LeagueTrainer:
             paths = [all_paths[0], *paths[-(self.args.max_snapshots - 1) :]]
         for path in paths:
             payload = torch.load(path, map_location=self.device, weights_only=True)
-            snapshot = MonopolyPolicy(self.model.config).to(self.device)
+            snapshot = PropertyTradingPolicy(self.model.config).to(self.device)
             snapshot.load_state_dict(payload["model"])
             snapshot.eval()
             snapshot.requires_grad_(False)
@@ -218,10 +218,10 @@ class LeagueTrainer:
         policies[learner] = -1
         return policies
 
-    def _new_env(self, game_index: int) -> tuple[MonopolyEnv, list[int], np.ndarray]:
+    def _new_env(self, game_index: int) -> tuple[PropertyTradingEnv, list[int], np.ndarray]:
         progress = min(1.0, self.state.games / max(1, self.args.curriculum_games))
         curriculum = round(self.args.initial_rounds + progress * (self.args.max_rounds - self.args.initial_rounds))
-        env = MonopolyEnv(self._player_count(), self.args.seed + self.state.games + game_index * 7919, max_rounds=curriculum)
+        env = PropertyTradingEnv(self._player_count(), self.args.seed + self.state.games + game_index * 7919, max_rounds=curriculum)
         policies = self._seat_policies(env.player_count, self.state.games + game_index)
         hidden = np.zeros((MAX_PLAYERS, self.model.hidden_size), dtype=np.float32)
         return env, policies, hidden
@@ -229,7 +229,7 @@ class LeagueTrainer:
     def collect_games(self) -> tuple[list[Transition], dict[str, float]]:
         target = self.args.games_per_update
         active_count = min(self.args.envs, target)
-        envs: list[MonopolyEnv] = []
+        envs: list[PropertyTradingEnv] = []
         policies: list[list[int]] = []
         hidden_states: list[np.ndarray] = []
         trajectories: list[list[list[Transition]]] = []
@@ -492,7 +492,7 @@ class LeagueTrainer:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Zero-knowledge league self-play trainer for MonopolyAI")
+    parser = argparse.ArgumentParser(description="Zero-knowledge baseline trainer for Property Trading Game AI")
     parser.add_argument("--run-dir", default="training/runs/zero-knowledge-main")
     parser.add_argument("--players", default="3,4,5")
     parser.add_argument("--envs", type=int, default=16)

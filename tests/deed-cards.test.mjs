@@ -6,7 +6,7 @@ import { propertyRent } from "../app/rent-rules.mjs";
 import { boardRuleFor } from "../shared/board-rules.mjs";
 
 const source = await readFile(
-  new URL("../app/GameApp.tsx", import.meta.url),
+  new URL("../app/StandaloneGameApp.tsx", import.meta.url),
   "utf8",
 );
 const styles = await readFile(
@@ -19,56 +19,15 @@ test("opens a physical-style deed card from every purchasable board space", () =
   assert.equal(deeds.filter((deed) => deed.kind === "property").length, 22);
   assert.equal(deeds.filter((deed) => deed.kind === "station").length, 4);
   assert.equal(deeds.filter((deed) => deed.kind === "utility").length, 2);
-  assert.match(
-    source,
-    /onClick=\{\(\) => \{[\s\S]*?if \(isDeedStyle\) \{[\s\S]*?setSelectedDeedTileId\(tile\.id\)/,
-  );
+  assert.match(source, /onClick=\{\(\) => setSelectedTileId\(tile\.id\)\}/);
   assert.match(source, /role="dialog"/);
   assert.match(source, /aria-modal="true"/);
-  assert.doesNotMatch(source, /<small>地契<\/small>/);
-  assert.match(styles, /\.deed-modal-backdrop/);
-  assert.match(styles, /\.deed-card/);
-  assert.match(
-    source,
-    /<div className="board-wrap">[\s\S]*?\{renderDeedModal\(\)\}/,
-  );
-  assert.match(
-    styles,
-    /\.deed-modal-backdrop\s*\{[\s\S]*?position:\s*absolute/,
-  );
-  assert.match(source, /className="deed-building-label"/);
-  assert.match(source, /index === 5 \? "hotel" : "house"/);
-  assert.match(styles, /\.deed-building-icon\.house\s*\{[\s\S]*?#16864b/);
-  assert.match(styles, /\.deed-building-icon\.hotel\s*\{[\s\S]*?#c9463b/);
-  const houseIconRule = styles.match(
-    /\.deed-building-icon\.house\s*\{[^}]*\}/,
-  )?.[0];
-  const hotelIconRule = styles.match(
-    /\.deed-building-icon\.hotel\s*\{[^}]*\}/,
-  )?.[0];
-  assert.match(houseIconRule ?? "", /width:\s*14px/);
-  assert.match(houseIconRule ?? "", /height:\s*10px/);
-  assert.match(hotelIconRule ?? "", /width:\s*14px/);
-  assert.match(hotelIconRule ?? "", /height:\s*10px/);
-  assert.match(
-    styles,
-    /\.deed-card\.deed-station > header h2\s*\{[\s\S]*?color: #fff;/,
-  );
-  assert.doesNotMatch(source, /className="deed-card-status"/);
+  assert.match(source, /className=\{property\.houses === 5 \? "hotel" : "houses"\}/);
+  assert.match(styles, /\.standalone-tile > small\.hotel\s*\{[\s\S]*?#c9232d/);
   assert.doesNotMatch(source, /持有人：|未抵押/);
   assert.match(source, /className="deed-mortgage-cross"/);
-  assert.match(source, /className="tile-mortgage-cross"/);
-  assert.match(
-    styles,
-    /\.deed-mortgage-cross\s*\{[\s\S]*?#cf2424/,
-  );
-  assert.match(
-    styles,
-    /\.tile-mortgage-cross\s*\{[\s\S]*?rgba\(210, 35, 35, 0\.88\)/,
-  );
-  const deedCardRule = styles.match(/\.deed-card\s*\{[^}]*\}/)?.[0];
-  assert.ok(deedCardRule);
-  assert.doesNotMatch(deedCardRule, /box-shadow/);
+  assert.match(source, /property\?\.mortgaged && <b aria-label="已抵押">×<\/b>/);
+  assert.match(styles, /\.deed-dialog \.deed-mortgage-cross/);
 });
 
 test("uses exact classic rents and mortgage values in both display and settlement", () => {
@@ -101,8 +60,7 @@ test("uses exact classic rents and mortgage values in both display and settlemen
     ),
     4,
   );
-  assert.match(source, /<span>地块售价<\/span>/);
-  assert.match(source, /money\(selectedDeedTile\.price \?\? 0\)/);
-  assert.match(source, /抵押价格/);
-  assert.match(source, /每栋房屋／酒店价格/);
+  assert.match(source, /地块售价 \{money\(Number\(selectedTile\.price \?\? 0\)\)\}/);
+  assert.match(source, /抵押价值 \{money\(selectedDeed\.mortgage\)\}/);
+  assert.match(source, /selectedDeed\.rents\.map/);
 });
