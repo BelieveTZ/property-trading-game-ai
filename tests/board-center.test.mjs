@@ -10,7 +10,7 @@ test("board center is a clean, level title without decorative copy or frames", (
     /<div className="board-center">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/,
   )?.[1] ?? "";
 
-  assert.match(centerMarkup, /<strong>大富翁AI<\/strong>/);
+  assert.match(centerMarkup, /<strong>MonopolyAI<\/strong>/);
   assert.match(source, /<div className="board-hud">/);
   assert.match(source, /className="round-chip"/);
   assert.match(source, /className="save-state"/);

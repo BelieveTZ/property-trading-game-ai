@@ -45,6 +45,7 @@ import {
 } from "./game-rules.mjs";
 import {
   createFreshSession,
+  LEGACY_SESSION_STORAGE_KEYS,
   readSessionSnapshot,
   SESSION_STORAGE_KEY,
   writeSessionSnapshot,
@@ -459,7 +460,11 @@ export default function GameApp() {
   /* eslint-disable react-hooks/set-state-in-effect -- Session hydration and turn-boundary reconciliation intentionally synchronize local UI state with external game state. */
   useEffect(() => {
     try {
-      const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+      const savedSession =
+        localStorage.getItem(SESSION_STORAGE_KEY) ??
+        LEGACY_SESSION_STORAGE_KEYS.map((key) =>
+          localStorage.getItem(key),
+        ).find((value) => value !== null);
       const savedGame = localStorage.getItem("deed-advisor-game-v1");
       const savedPolicy = localStorage.getItem("deed-advisor-policy-v1");
       if (savedSession || savedGame) {
@@ -501,6 +506,7 @@ export default function GameApp() {
         buildDecisionCompleted,
       }),
     );
+    LEGACY_SESSION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
   }, [
     auction,
     buildDecisionCompleted,
@@ -1443,7 +1449,7 @@ export default function GameApp() {
     );
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `大富翁AI-第${game.round}轮.json`;
+    anchor.download = `MonopolyAI-第${game.round}轮.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -2065,7 +2071,7 @@ export default function GameApp() {
                   <span className="save-state"><i /> 已在本机保存</span>
                 </div>
                 <div className="board-seal">
-                  <strong>大富翁AI</strong>
+                  <strong>MonopolyAI</strong>
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-# Monopoly AI
+# MonopolyAI
 
 为实体《Monopoly Plus》牌局提供状态记录、规则结算与操作建议，并通过自对弈训练策略。
 

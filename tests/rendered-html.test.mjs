@@ -16,13 +16,13 @@ async function render() {
   );
 }
 
-test("renders the Deed Advisor application shell", async () => {
+test("renders the MonopolyAI application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /<title>大富翁AI<\/title>/);
-  assert.match(html, /<strong>大富翁AI<\/strong>/);
+  assert.match(html, /<title>MonopolyAI<\/title>/);
+  assert.match(html, /<strong>MonopolyAI<\/strong>/);
   assert.match(html, /当前回合/);
   assert.match(html, /当前部署策略/);
   assert.match(html, /专用神经进化模型/);

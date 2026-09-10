@@ -492,7 +492,7 @@ class LeagueTrainer:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Zero-knowledge league self-play trainer for Monopoly AI")
+    parser = argparse.ArgumentParser(description="Zero-knowledge league self-play trainer for MonopolyAI")
     parser.add_argument("--run-dir", default="training/runs/zero-knowledge-main")
     parser.add_argument("--players", default="3,4,5")
     parser.add_argument("--envs", type=int, default=16)

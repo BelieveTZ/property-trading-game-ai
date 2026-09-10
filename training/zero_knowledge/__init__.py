@@ -1,4 +1,4 @@
-"""Zero-knowledge multi-agent training package for Monopoly AI."""
+"""Zero-knowledge multi-agent training package for MonopolyAI."""
 
 from .env import Action, MonopolyEnv
 
