@@ -1,0 +1,51 @@
+export const CARD_DECK_LABELS = Object.freeze({
+  chance: "机会",
+  community: "社会基金",
+});
+
+export const CARD_DECKS = Object.freeze({
+  chance: Object.freeze([
+    { id: "chance-boardwalk", label: "直达海滨大道。", effect: { kind: "move", destination: 39, collectGo: false } },
+    { id: "chance-go", label: "前往“起点”。（领取 $200）", effect: { kind: "move", destination: 0, collectGo: true } },
+    { id: "chance-illinois", label: "直达伊利诺大道。如途经“起点”，可领取 $200。", effect: { kind: "move", destination: 24, collectGo: true } },
+    { id: "chance-st-charles", label: "直达圣查尔斯广场。如途经“起点”，可领取 $200。", effect: { kind: "move", destination: 11, collectGo: true } },
+    {
+      id: "chance-nearest-station",
+      label: "前进至最近的铁路。如果尚无业主，你可以向银行购买。如果已有业主，则向业主支付双倍租金。（牌组中有两张）",
+      effect: { kind: "nearest", target: "station" },
+      copies: 2,
+    },
+    {
+      id: "chance-nearest-utility",
+      label: "直达最近的“公用事业”。如果尚无业主，你可以向银行购买。如果已有业主，则再掷骰子，并向业主支付掷出点数的 10 倍租金。",
+      effect: { kind: "nearest", target: "utility" },
+    },
+    { id: "chance-dividend", label: "银行支付红利 $50。", effect: { kind: "cash", amount: 50 } },
+    { id: "chance-jail-free", label: "监狱通行证，此卡片可以保留在需要时使用或交易。", effect: { kind: "jailFree" } },
+    { id: "chance-back-three", label: "退后 3 格。", effect: { kind: "back", spaces: 3 } },
+    { id: "chance-jail", label: "即时入狱。直接去监狱，不要经过“起点”，不能领取 $200。", effect: { kind: "jail" } },
+    { id: "chance-repairs", label: "对你的物业进行全面维修：每栋房子付 $25，每间旅馆付 $100。", effect: { kind: "repairs", perHouse: 25, perHotel: 100 } },
+    { id: "chance-speeding", label: "超速行驶罚款 $15。", effect: { kind: "cash", amount: -15 } },
+    { id: "chance-reading", label: "前进雷丁铁路。如途经“起点”，可领取 $200。", effect: { kind: "move", destination: 5, collectGo: true } },
+    { id: "chance-chairman", label: "当选为董事局主席，付每位参加者 $50。", effect: { kind: "payEach", amount: 50 } },
+    { id: "chance-loan", label: "房屋贷款到期，领取 $150。", effect: { kind: "cash", amount: 150 } },
+  ]),
+  community: Object.freeze([
+    { id: "community-go", label: "前往“起点”。（领取 $200）", effect: { kind: "move", destination: 0, collectGo: true } },
+    { id: "community-bank-error", label: "银行疏忽对你有利，领取 $200。", effect: { kind: "cash", amount: 200 } },
+    { id: "community-doctor", label: "支付医药费 $50。", effect: { kind: "cash", amount: -50 } },
+    { id: "community-stock", label: "出售股票，获利 $50。", effect: { kind: "cash", amount: 50 } },
+    { id: "community-jail-free", label: "监狱通行证，此卡片可以保留在需要时使用或交易。", effect: { kind: "jailFree" } },
+    { id: "community-jail", label: "即时入狱。直接去监狱，不要经过“起点”，不能领取 $200。", effect: { kind: "jail" } },
+    { id: "community-holiday", label: "旅游基金到期，领取 $100。", effect: { kind: "cash", amount: 100 } },
+    { id: "community-tax-refund", label: "所得税退款，领取 $20。", effect: { kind: "cash", amount: 20 } },
+    { id: "community-birthday", label: "今天是你的生日，向每位参加者收取 $10。", effect: { kind: "collectEach", amount: 10 } },
+    { id: "community-insurance", label: "寿险到期，领取 $100。", effect: { kind: "cash", amount: 100 } },
+    { id: "community-hospital", label: "支付住院费 $100。", effect: { kind: "cash", amount: -100 } },
+    { id: "community-school", label: "支付学费 $50。", effect: { kind: "cash", amount: -50 } },
+    { id: "community-consultancy", label: "收取顾问费 $25。", effect: { kind: "cash", amount: 25 } },
+    { id: "community-repairs", label: "经评估你需维修街道：每栋房子付 $40，每间旅馆付 $115。", effect: { kind: "repairs", perHouse: 40, perHotel: 115 } },
+    { id: "community-beauty", label: "获得选美亚军，获奖 $10。", effect: { kind: "cash", amount: 10 } },
+    { id: "community-inherit", label: "继承财产 $100。", effect: { kind: "cash", amount: 100 } },
+  ]),
+});
