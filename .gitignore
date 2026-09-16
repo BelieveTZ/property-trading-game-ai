@@ -23,6 +23,11 @@
 # misc
 .DS_Store
 *.pem
+/.agents/
+/.codex/
+/.openai/
+/AGENTS.md
+/docs/agents/
 
 # debug
 npm-debug.log*
@@ -46,6 +51,12 @@ next-env.d.ts
 /work/
 /.venv-rl/
 /training/runs/
+/training/game-aware-training.ps1
+/training/run-hidden.vbs
+/training/training-lifecycle.ps1
+/tests/game_guard_test.py
+/docs/research/deepseek-v4-1-flash.md
+/docs/development/
 __pycache__/
 .pytest_cache/
 *.py[cod]

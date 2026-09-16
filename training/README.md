@@ -16,7 +16,7 @@
 4. 在约 100、300、500 GPU 小时冻结候选并独立评测；只有通过门禁的候选才进入应用。
 5. 共享模型权重，但每个席位使用独立记忆、奖励累计和采样随机流。
 
-版本化参数见 [`search_pipeline/config.json`](search_pipeline/config.json)。`SearchTeacher` 在每次模拟前重新采样未知卡序，不会沿用环境内已洗好的隐藏顺序。教师数据逐条保存游戏种子、教师种子、版本、搜索预算、决策序号和所选动作，可从同一配置复现。
+版本化参数见 [`search_pipeline/config.json`](search_pipeline/config.json)。批量数据生成使用每次决策 32 次模拟、深度 24 的候选搜索；当合法动作超过预算时，按动作类型保留覆盖后再从其余动作中进行有种子的抽样，因此总搜索量不会随交易候选数量失控。高预算上限策略仍使用独立配置，不受批量生成预算影响。`SearchTeacher` 在每次模拟前重新采样未知卡序，不会沿用环境内已洗好的隐藏顺序。教师数据逐条保存游戏种子、教师种子、版本、搜索预算、决策序号和所选动作，可从同一配置复现。
 
 可先用小预算生成一份可复现教师数据，验证完整管线：
 
@@ -25,12 +25,14 @@ python -m training.search_pipeline.generate `
   --output training/runs/search-teacher/sample.jsonl `
   --run-dir training/runs/search-teacher `
   --players 4 `
-  --games 1 `
-  --simulations 16 `
-  --depth 24
+  --games 8 `
+  --simulations 32 `
+  --depth 24 `
+  --workers 4 `
+  --checkpoint-every 32
 ```
 
-生成器每局后原子保存进度；在运行目录创建 `pause.request` 后会在当前牌局结束时安全暂停，再次执行同一命令会从已完成局数继续。
+生成器把每局保存为独立分片，由多个 CPU 进程并行生成，并按游戏编号确定性合并。每 32 个决策保存一次局内检查点；在运行目录创建 `pause.request` 后，各工作进程会在当前决策结束时安全暂停。再次执行同一命令会恢复未完成牌局并跳过已完成分片。搜索教师阶段累计在 `teacher_cpu_seconds`，不会误计入 GPU 训练里程碑。
 
 随后可把教师分布蒸馏为兼容现有公开观测／候选动作接口的快速策略：
 
@@ -38,8 +40,14 @@ python -m training.search_pipeline.generate `
 python -m training.search_pipeline.distill `
   --dataset training/runs/search-teacher/sample.jsonl `
   --output training/runs/search-teacher/student.pt `
-  --steps 200
+  --run-dir training/runs/search-teacher `
+  --steps 20000 `
+  --batch-size 256 `
+  --checkpoint-every 100
 ```
+
+蒸馏器先为 JSONL 建立小型随机访问索引，再按固定种子抽取批次；不会把完整教师数据同时展开到内存或显存。`distill-checkpoint.pt` 保存模型与优化器，重复执行相同命令会校验数据哈希、模型结构、批量大小、种子、抽样版本和优化器配置后继续未完成步数。`distill-state.json` 与 `distill-pid.txt` 用于查看进度。默认 20,000 步、批量 256，相当于在 306,753 条样本上约 16.7 个样本轮次；需要更多训练时可以提高总步数并从同一检查点延长。
+
 
 将蒸馏策略与一个或多个冻结检查点进行联盟自对弈微调；每个席位拥有独立的循环记忆、累计奖励和采样随机流：
 
@@ -52,6 +60,22 @@ python -m training.search_pipeline.train_league `
   --games 24 `
   --players 3,4,5
 ```
+
+正式里程碑训练使用实际运行时间预算，并把局数设置为只起安全上限作用的足够大数值。例如，从已完成的联盟候选继续训练到第一个 100 GPU 小时里程碑：
+
+```powershell
+python -m training.search_pipeline.train_league `
+  --checkpoint training/runs/search-main/league-v1.pt `
+  --opponent neuroevolution-v5=app/pretrained-model.json `
+  --opponent zero-knowledge-ppo-v1=training/runs/baselines/zero-knowledge-ppo-v1.pt `
+  --output training/runs/search-main-100h/league-100h.pt `
+  --run-dir training/runs/search-main-100h `
+  --games 1000000 `
+  --players 3,4,5 `
+  --gpu-hours 100
+```
+
+联盟训练每 24 局执行一次策略更新并释放该批决策样本；`league-state.json` 持续记录已完成局数和本次里程碑累计秒数。收到暂停请求时，检查点同时保存候选权重、待更新样本和累计时间，恢复后不会重算已经完成的牌局。达到时间预算后状态变为 `budget-reached`，并原子写出可直接用于独立评测的候选模型。
 
 使用固定种子、3/4/5 人局和均衡候选座位运行独立评测，并在达到 100、300、500 GPU 小时时冻结检查点：
 

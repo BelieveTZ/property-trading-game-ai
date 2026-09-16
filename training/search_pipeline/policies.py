@@ -410,12 +410,23 @@ class LegacyNeuroPolicy:
             if by_kind[ActionKind.BANKRUPT]:
                 return by_kind[ActionKind.BANKRUPT][0]
 
-        for kind in (ActionKind.UNMORTGAGE, ActionKind.ROLL, ActionKind.END_TURN):
+        for kind in (
+            ActionKind.UNMORTGAGE,
+            ActionKind.ROLL,
+            ActionKind.END_TURN,
+            ActionKind.DECLINE,
+            ActionKind.REJECT_TRADE,
+        ):
             if by_kind[kind]:
                 return by_kind[kind][0]
         for kind in (ActionKind.MORTGAGE, ActionKind.SELL_BUILDING, ActionKind.BANKRUPT):
             if by_kind[kind]:
                 return by_kind[kind][0]
+        if by_kind[ActionKind.TRADE]:
+            return max(
+                by_kind[ActionKind.TRADE],
+                key=lambda action: self._features(view, action)[3],
+            )
         raise RuntimeError("legacy policy received no supported legal action")
 
 

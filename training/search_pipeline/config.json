@@ -3,14 +3,20 @@
   "playerCounts": [3, 4, 5],
   "monthlyGpuHours": [450, 600],
   "teacher": {
-    "version": "seeded-stochastic-rollout-v1",
-    "algorithm": "seeded-stochastic-rollout-search",
-    "simulations": 256,
-    "depth": 96
+    "version": "seeded-candidate-rollout-v2",
+    "algorithm": "seeded-candidate-rollout-search",
+    "simulations": 32,
+    "depth": 24
   },
   "student": {
     "version": "search-student-v1",
     "seed": 20260910,
+    "distillation": {
+      "steps": 20000,
+      "batchSize": 256,
+      "checkpointEvery": 100,
+      "sampling": "seeded-with-replacement-v1"
+    },
     "objective": ["teacher-policy-distillation", "terminal-value"],
     "sharedWeights": true,
     "independentSeatMemory": true
@@ -29,6 +35,7 @@
   },
   "league": {
     "frozenBaselines": ["neuroevolution-v5", "zero-knowledge-ppo-v1"],
+    "updateEveryGames": 24,
     "milestoneGpuHours": [100, 300, 500]
   },
   "evaluation": {

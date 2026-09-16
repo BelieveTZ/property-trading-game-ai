@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from training.zero_knowledge.env import Action, PropertyTradingEnv
+from training.zero_knowledge.env import Action, ActionKind, PropertyTradingEnv
 from .config import load_search_config
 
 
@@ -179,15 +179,41 @@ class SearchTeacher:
         actions = view["legal_actions"]
         if not actions:
             raise RuntimeError("no legal action is available")
+        candidate_count = min(self.simulations, len(actions))
+        if candidate_count == len(actions):
+            candidates = np.arange(len(actions), dtype=np.int32)
+        else:
+            by_kind: dict[ActionKind, list[int]] = {}
+            for action_index, action in enumerate(actions):
+                by_kind.setdefault(action.kind, []).append(action_index)
+            selected = [
+                indices[int(self.rng.integers(len(indices)))]
+                for indices in by_kind.values()
+            ][:candidate_count]
+            remaining = np.asarray(
+                [index for index in range(len(actions)) if index not in selected],
+                dtype=np.int32,
+            )
+            if len(selected) < candidate_count:
+                selected.extend(
+                    self.rng.choice(
+                        remaining,
+                        size=candidate_count - len(selected),
+                        replace=False,
+                    ).tolist(),
+                )
+            candidates = np.asarray(sorted(selected), dtype=np.int32)
         totals = np.zeros(len(actions), dtype=np.float64)
         visits = np.zeros(len(actions), dtype=np.int32)
-        for index in range(max(self.simulations, len(actions))):
-            action_index = index % len(actions)
+        for index in range(self.simulations):
+            action_index = int(candidates[index % len(candidates)])
             totals[action_index] += self._rollout(env, actions[action_index], env.actor)
             visits[action_index] += 1
-        means = totals / np.maximum(visits, 1)
+        means = totals[candidates] / visits[candidates]
         shifted = means - means.max()
-        policy = np.exp(shifted)
-        policy /= policy.sum()
-        best = int(np.flatnonzero(means == means.max())[0])
+        candidate_policy = np.exp(shifted)
+        candidate_policy /= candidate_policy.sum()
+        policy = np.zeros(len(actions), dtype=np.float64)
+        policy[candidates] = candidate_policy
+        best = int(candidates[int(np.flatnonzero(means == means.max())[0])])
         return actions[best], policy.astype(np.float32)
